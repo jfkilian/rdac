@@ -3482,6 +3482,1324 @@ void decodeMT2(int d0, unsigned char *in, int *out)
     }
 }
 
+
+void debugPatterns(void) {
+    for(int i = 0; i < 38; i++) {
+        printf("%d %d\n", i, usedpatterns[i]);
+    }
+
+}
+
+void decodeLIV(int d0, unsigned char *in, int *out)
+{
+    // Decodes a 10-byte LIV RDAC block into 16-bit samples.
+
+    int patternIndex = MASK_L(in[0], 0xf0, 0) | MASK_R(in[2], 0xf0, 4);
+
+    int pattern = patterns[patternIndex];
+
+    int *p = out;
+    if(usedpatterns[pattern] < 0) {
+        usedpatterns[pattern] = usedpatterns[pattern]  -1;
+
+    } else {
+        usedpatterns[pattern] = -1;
+    }
+
+    switch (pattern) {
+
+
+
+        /*=====================================================================
+         pattern A MT1
+         ppp88888 88888888 pppggggg gggggggg
+         87777776 66666655 gffffffe eeeeeedd
+         55554444 44444333 ddddcccc cccccbbb
+         33322222 22111111 bbbaaaaa aa999999
+
+         p = 6 bit
+         g  14 bit
+         f  6 bit
+         e  7 bit
+         d  6 bit
+         c  9 bit
+         b  6 bit
+         a  7 bit
+         9  6 bit
+         8  14 bit
+         7  6 bit
+         6  7 bit
+         5  6 bit
+         4  9 bit
+         3  6 bit
+         2  7 bit
+         1  6 bit
+
+
+            PATTERN A  MT2
+            pp888888 88888777 ppgggggg gggggfff
+            76666665 55544444 feeeeeed dddccccc
+            44333322 22221111 ccbbbbaa aaaa9999
+
+         p = 2 x 2 bit
+         g  11 bit
+         f  4 bit
+         e  6 bit
+         d  4 bit
+         c  7 bit
+         b  4 bit
+         a  6 bit
+         9  4 bit
+         8  11 bit
+         7  4 bit
+         6  6 bit
+         5  4 bit
+         4  7 bit
+         3  4 bit
+         2  6 bit
+         1  4 bit
+        */
+
+            /*=====================================================================
+            PATTERN A LIVE
+             pp888888 88887776 ppgggggg ggggfffe
+             66663334 44444333 eeeedddc cccccbbb
+             22222111          aaaaa999
+
+             p = 2 x 2 bit
+
+             g  11 bit    10
+             f  4 bit      3
+             e  6 bit      5
+             d  4 bit      3
+             c  7 bit      6
+             b  4 bit      3
+             a  6 bit      5
+             9  4 bit      3
+
+             8  11 bit    10
+             7  4 bit      3
+             6  6 bit      5
+             5  4 bit      3
+             4  7 bit      6
+             3  4 bit      3
+             2  6 bit      5
+             1  4 bit      3
+            */
+
+        case 0:  /* 00..00.. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p);
+            *(++p) = MASK_L(in[8],  0x03, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_6(*p);
+            *(++p) = MASK_R(in[8],  0x3c, 2);                           SIGN_EXTEND_4(*p);
+            *(++p) = MASK_L(in[5],  0x1f, 2) | MASK_R(in[8],  0xc0, 6); SIGN_EXTEND_7(*p);
+            *(++p) = MASK_L(in[4],  0x01, 3) | MASK_R(in[5],  0xe0, 5); SIGN_EXTEND_4(*p);
+            *(++p) = MASK_R(in[4],  0x7e, 1);                           SIGN_EXTEND_6(*p);
+            *(++p) = MASK_L(in[1],  0x07, 1) | MASK_R(in[4],  0x80, 7); SIGN_EXTEND_4(*p);
+            *(++p) = MASK_L(in[0],  0x3f, 5) | MASK_R(in[1],  0xf8, 3); SIGN_EXTEND_11(*p);
+
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p);
+            *(++p) = MASK_L(in[10], 0x03, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_6(*p);
+            *(++p) = MASK_R(in[10], 0x3c, 2);                           SIGN_EXTEND_4(*p);
+            *(++p) = MASK_L(in[7],  0x1f, 2) | MASK_R(in[10], 0xc0, 6); SIGN_EXTEND_7(*p);
+            *(++p) = MASK_L(in[6],  0x01, 3) | MASK_R(in[7],  0xe0, 5); SIGN_EXTEND_4(*p);
+            *(++p) = MASK_R(in[6],  0x7e, 1);                           SIGN_EXTEND_6(*p);
+            *(++p) = MASK_L(in[3],  0x07, 1) | MASK_R(in[6],  0x80, 7); SIGN_EXTEND_4(*p);
+            *(++p) = MASK_L(in[2],  0x3f, 5) | MASK_R(in[3],  0xf8, 3); SIGN_EXTEND_11(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 1:  /* 00..01.. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[8],  0x03, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_6(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_R(in[8],  0x3c, 2);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[5],  0x1f, 2) | MASK_R(in[8],  0xc0, 6); SIGN_EXTEND_7(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[4],  0x01, 3) | MASK_R(in[5],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_R(in[4],  0x7e, 1);                           SIGN_EXTEND_6(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[1],  0x07, 1) | MASK_R(in[4],  0x80, 7); SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[0],  0x3f, 5) | MASK_R(in[1],  0xf8, 3); SIGN_EXTEND_11(*p); SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[10], 0x03, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_6(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_R(in[10], 0x3c, 2);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[7],  0x1f, 2) | MASK_R(in[10], 0xc0, 6); SIGN_EXTEND_7(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[6],  0x01, 3) | MASK_R(in[7],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_R(in[6],  0x7e, 1);                           SIGN_EXTEND_6(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[3],  0x07, 1) | MASK_R(in[6],  0x80, 7); SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[2],  0x3f, 5) | MASK_R(in[3],  0xf8, 3); SIGN_EXTEND_11(*p); SHIFT_ROUND_1(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 2:  /* 00..10.. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[8],  0x03, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_6(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_R(in[8],  0x3c, 2);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[5],  0x1f, 2) | MASK_R(in[8],  0xc0, 6); SIGN_EXTEND_7(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[4],  0x01, 3) | MASK_R(in[5],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_R(in[4],  0x7e, 1);                           SIGN_EXTEND_6(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[1],  0x07, 1) | MASK_R(in[4],  0x80, 7); SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[0],  0x3f, 5) | MASK_R(in[1],  0xf8, 3); SIGN_EXTEND_11(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[10], 0x03, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_6(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_R(in[10], 0x3c, 2);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[7],  0x1f, 2) | MASK_R(in[10], 0xc0, 6); SIGN_EXTEND_7(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[6],  0x01, 3) | MASK_R(in[7],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_R(in[6],  0x7e, 1);                           SIGN_EXTEND_6(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[3],  0x07, 1) | MASK_R(in[6],  0x80, 7); SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[2],  0x3f, 5) | MASK_R(in[3],  0xf8, 3); SIGN_EXTEND_11(*p); SHIFT_ROUND_2(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 3:  /* 00..11.. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[8],  0x03, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_6(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_R(in[8],  0x3c, 2);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[5],  0x1f, 2) | MASK_R(in[8],  0xc0, 6); SIGN_EXTEND_7(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[4],  0x01, 3) | MASK_R(in[5],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_R(in[4],  0x7e, 1);                           SIGN_EXTEND_6(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[1],  0x07, 1) | MASK_R(in[4],  0x80, 7); SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[0],  0x3f, 5) | MASK_R(in[1],  0xf8, 3); SIGN_EXTEND_11(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[10], 0x03, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_6(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_R(in[10], 0x3c, 2);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[7],  0x1f, 2) | MASK_R(in[10], 0xc0, 6); SIGN_EXTEND_7(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[6],  0x01, 3) | MASK_R(in[7],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_R(in[6],  0x7e, 1);                           SIGN_EXTEND_6(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[3],  0x07, 1) | MASK_R(in[6],  0x80, 7); SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[2],  0x3f, 5) | MASK_R(in[3],  0xf8, 3); SIGN_EXTEND_11(*p); SHIFT_ROUND_3(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 4:  /* 01..00.. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[8],  0x03, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_6(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[8],  0x3c, 2);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[5],  0x1f, 2) | MASK_R(in[8],  0xc0, 6); SIGN_EXTEND_7(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[4],  0x01, 3) | MASK_R(in[5],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[4],  0x7e, 1);                           SIGN_EXTEND_6(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[1],  0x07, 1) | MASK_R(in[4],  0x80, 7); SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[0],  0x3f, 5) | MASK_R(in[1],  0xf8, 3); SIGN_EXTEND_11(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[10], 0x03, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_6(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[10], 0x3c, 2);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[7],  0x1f, 2) | MASK_R(in[10], 0xc0, 6); SIGN_EXTEND_7(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[6],  0x01, 3) | MASK_R(in[7],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[6],  0x7e, 1);                           SIGN_EXTEND_6(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[3],  0x07, 1) | MASK_R(in[6],  0x80, 7); SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[2],  0x3f, 5) | MASK_R(in[3],  0xf8, 3); SIGN_EXTEND_11(*p); SHIFT_ROUND_4(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 5:  /* 01..01.. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[8],  0x03, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_6(*p);  SHIFT_ROUND_5(*p);
+            *(++p) = MASK_R(in[8],  0x3c, 2);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[5],  0x1f, 2) | MASK_R(in[8],  0xc0, 6); SIGN_EXTEND_7(*p);  SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[4],  0x01, 3) | MASK_R(in[5],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_5(*p);
+            *(++p) = MASK_R(in[4],  0x7e, 1);                           SIGN_EXTEND_6(*p);  SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[1],  0x07, 1) | MASK_R(in[4],  0x80, 7); SIGN_EXTEND_4(*p);  SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[0],  0x3f, 5) | MASK_R(in[1],  0xf8, 3); SIGN_EXTEND_11(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[10], 0x03, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_6(*p);  SHIFT_ROUND_5(*p);
+            *(++p) = MASK_R(in[10], 0x3c, 2);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[7],  0x1f, 2) | MASK_R(in[10], 0xc0, 6); SIGN_EXTEND_7(*p);  SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[6],  0x01, 3) | MASK_R(in[7],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_5(*p);
+            *(++p) = MASK_R(in[6],  0x7e, 1);                           SIGN_EXTEND_6(*p);  SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[3],  0x07, 1) | MASK_R(in[6],  0x80, 7); SIGN_EXTEND_4(*p);  SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[2],  0x3f, 5) | MASK_R(in[3],  0xf8, 3); SIGN_EXTEND_11(*p); SHIFT_ROUND_5(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        /*=====================================================================
+            PATTERN B
+            pp888888 87777766 ppgggggg gfffffee
+            66665555 54444444 eeeedddd dccccccc
+            33333222 22211111 bbbbbaaa aaa99999
+        */
+
+        case 6:  /* 01..10.. */
+
+            *p     = MASK_L(in[9],  0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[8],  0x07, 3) | MASK_R(in[9],  0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[8],  0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[5],  0x7f, 0);                           SIGN_EXTEND_7(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[4],  0x0f, 1) | MASK_R(in[5],  0x80, 7); SIGN_EXTEND_5(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[1],  0x03, 4) | MASK_R(in[4],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[1],  0x7c, 2);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[0],  0x3f, 1) | MASK_R(in[1],  0x80, 7); SIGN_EXTEND_7(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[11], 0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[10], 0x07, 3) | MASK_R(in[11], 0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[10], 0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[7],  0x7f, 0);                           SIGN_EXTEND_7(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[6],  0x0f, 1) | MASK_R(in[7],  0x80, 7); SIGN_EXTEND_5(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[3],  0x03, 4) | MASK_R(in[6],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[3],  0x7c, 2);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[2],  0x3f, 1) | MASK_R(in[3],  0x80, 7); SIGN_EXTEND_7(*p); SHIFT_ROUND_4(*p);
+
+            // 4 linears
+
+            INTERPOLATE_4(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 7:  /* 01..11.. */
+
+            *p     = MASK_L(in[9],  0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[8],  0x07, 3) | MASK_R(in[9],  0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_R(in[8],  0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_R(in[5],  0x7f, 0);                           SIGN_EXTEND_7(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[4],  0x0f, 1) | MASK_R(in[5],  0x80, 7); SIGN_EXTEND_5(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[1],  0x03, 4) | MASK_R(in[4],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_R(in[1],  0x7c, 2);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[0],  0x3f, 1) | MASK_R(in[1],  0x80, 7); SIGN_EXTEND_7(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[11], 0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[10], 0x07, 3) | MASK_R(in[11], 0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_R(in[10], 0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_R(in[7],  0x7f, 0);                           SIGN_EXTEND_7(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[6],  0x0f, 1) | MASK_R(in[7],  0x80, 7); SIGN_EXTEND_5(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[3],  0x03, 4) | MASK_R(in[6],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_R(in[3],  0x7c, 2);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[2],  0x3f, 1) | MASK_R(in[3],  0x80, 7); SIGN_EXTEND_7(*p); SHIFT_ROUND_5(*p);
+
+            // 4 linears
+
+            INTERPOLATE_4(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 8:  /* 10..00.. */
+
+            *p     = MASK_L(in[9],  0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[8],  0x07, 3) | MASK_R(in[9],  0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[8],  0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[5],  0x7f, 0);                           SIGN_EXTEND_7(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[4],  0x0f, 1) | MASK_R(in[5],  0x80, 7); SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[1],  0x03, 4) | MASK_R(in[4],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[1],  0x7c, 2);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[0],  0x3f, 1) | MASK_R(in[1],  0x80, 7); SIGN_EXTEND_7(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[11], 0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[10], 0x07, 3) | MASK_R(in[11], 0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[10], 0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[7],  0x7f, 0);                           SIGN_EXTEND_7(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[6],  0x0f, 1) | MASK_R(in[7],  0x80, 7); SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[3],  0x03, 4) | MASK_R(in[6],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[3],  0x7c, 2);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[2],  0x3f, 1) | MASK_R(in[3],  0x80, 7); SIGN_EXTEND_7(*p); SHIFT_ROUND_6(*p);
+
+            // 4 linears
+
+            INTERPOLATE_4(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 9:  /* 10..01.. */
+
+            *p     = MASK_L(in[9],  0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[8],  0x07, 3) | MASK_R(in[9],  0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[8],  0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[5],  0x7f, 0);                           SIGN_EXTEND_7(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[4],  0x0f, 1) | MASK_R(in[5],  0x80, 7); SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[1],  0x03, 4) | MASK_R(in[4],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[1],  0x7c, 2);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[0],  0x3f, 1) | MASK_R(in[1],  0x80, 7); SIGN_EXTEND_7(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[11], 0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[10], 0x07, 3) | MASK_R(in[11], 0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[10], 0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[7],  0x7f, 0);                           SIGN_EXTEND_7(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[6],  0x0f, 1) | MASK_R(in[7],  0x80, 7); SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[3],  0x03, 4) | MASK_R(in[6],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[3],  0x7c, 2);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[2],  0x3f, 1) | MASK_R(in[3],  0x80, 7); SIGN_EXTEND_7(*p); SHIFT_ROUND_7(*p);
+
+            // 4 linears
+
+            INTERPOLATE_4(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 10: /* 10..10.. */
+
+            *p     = MASK_L(in[9],  0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[8],  0x07, 3) | MASK_R(in[9],  0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[8],  0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[5],  0x7f, 0);                           SIGN_EXTEND_7(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[4],  0x0f, 1) | MASK_R(in[5],  0x80, 7); SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[1],  0x03, 4) | MASK_R(in[4],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[1],  0x7c, 2);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[0],  0x3f, 1) | MASK_R(in[1],  0x80, 7); SIGN_EXTEND_7(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[11], 0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[10], 0x07, 3) | MASK_R(in[11], 0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[10], 0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[7],  0x7f, 0);                           SIGN_EXTEND_7(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[6],  0x0f, 1) | MASK_R(in[7],  0x80, 7); SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[3],  0x03, 4) | MASK_R(in[6],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[3],  0x7c, 2);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[2],  0x3f, 1) | MASK_R(in[3],  0x80, 7); SIGN_EXTEND_7(*p); SHIFT_ROUND_8(*p);
+
+            // 4 linears
+
+            INTERPOLATE_4(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 11: /* 10..11.. */
+
+            *p     = MASK_L(in[9],  0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[8],  0x07, 3) | MASK_R(in[9],  0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_R(in[8],  0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_R(in[5],  0x7f, 0);                           SIGN_EXTEND_7(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[4],  0x0f, 1) | MASK_R(in[5],  0x80, 7); SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[1],  0x03, 4) | MASK_R(in[4],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_R(in[1],  0x7c, 2);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[0],  0x3f, 1) | MASK_R(in[1],  0x80, 7); SIGN_EXTEND_7(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[11], 0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[10], 0x07, 3) | MASK_R(in[11], 0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_R(in[10], 0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_R(in[7],  0x7f, 0);                           SIGN_EXTEND_7(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[6],  0x0f, 1) | MASK_R(in[7],  0x80, 7); SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[3],  0x03, 4) | MASK_R(in[6],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_R(in[3],  0x7c, 2);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[2],  0x3f, 1) | MASK_R(in[3],  0x80, 7); SIGN_EXTEND_7(*p); SHIFT_ROUND_9(*p);
+
+            // 4 linears
+
+            INTERPOLATE_4(d0, out);
+
+            PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        /*=====================================================================
+            PATTERN F
+            ppp88888 88888887 pppggggg gggggggf
+            77766666 55554444 fffeeeee ddddcccc
+            44433332 22221111 cccbbbba aaaa9999
+        */
+
+        case 12: /* 110.000. */
+
+            /* Unknown
+            */
+            ZERO(out);
+
+            return;
+
+        case 13: /* 110.001. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p);
+            *(++p) = MASK_L(in[8],  0x01, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_5(*p);
+            *(++p) = MASK_R(in[8],  0x1e, 1);                           SIGN_EXTEND_4(*p);
+            *(++p) = MASK_L(in[5],  0x0f, 3) | MASK_R(in[8],  0xe0, 5); SIGN_EXTEND_7(*p);
+            *(++p) = MASK_R(in[5],  0xf0, 4);                           SIGN_EXTEND_4(*p);
+            *(++p) = MASK_R(in[4],  0x1f, 0);                           SIGN_EXTEND_5(*p);
+            *(++p) = MASK_L(in[1],  0x01, 3) | MASK_R(in[4],  0xe0, 5); SIGN_EXTEND_4(*p);
+            *(++p) = MASK_L(in[0],  0x1f, 7) | MASK_R(in[1],  0xfe, 1); SIGN_EXTEND_12(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p);
+            *(++p) = MASK_L(in[10], 0x01, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_5(*p);
+            *(++p) = MASK_R(in[10], 0x1e, 1);                           SIGN_EXTEND_4(*p);
+            *(++p) = MASK_L(in[7],  0x0f, 3) | MASK_R(in[10], 0xe0, 5); SIGN_EXTEND_7(*p);
+            *(++p) = MASK_R(in[7],  0xf0, 4);                           SIGN_EXTEND_4(*p);
+            *(++p) = MASK_R(in[6],  0x1f, 0);                           SIGN_EXTEND_5(*p);
+            *(++p) = MASK_L(in[3],  0x01, 3) | MASK_R(in[6],  0xe0, 5); SIGN_EXTEND_4(*p);
+            *(++p) = MASK_L(in[2],  0x1f, 7) | MASK_R(in[3],  0xfe, 1); SIGN_EXTEND_12(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 14: /* 110.010. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[8],  0x01, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_5(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_R(in[8],  0x1e, 1);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[5],  0x0f, 3) | MASK_R(in[8],  0xe0, 5); SIGN_EXTEND_7(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_R(in[5],  0xf0, 4);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_R(in[4],  0x1f, 0);                           SIGN_EXTEND_5(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[1],  0x01, 3) | MASK_R(in[4],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[0],  0x1f, 7) | MASK_R(in[1],  0xfe, 1); SIGN_EXTEND_12(*p); SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[10], 0x01, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_5(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_R(in[10], 0x1e, 1);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[7],  0x0f, 3) | MASK_R(in[10], 0xe0, 5); SIGN_EXTEND_7(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_R(in[7],  0xf0, 4);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_R(in[6],  0x1f, 0);                           SIGN_EXTEND_5(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[3],  0x01, 3) | MASK_R(in[6],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_1(*p);
+            *(++p) = MASK_L(in[2],  0x1f, 7) | MASK_R(in[3],  0xfe, 1); SIGN_EXTEND_12(*p); SHIFT_ROUND_1(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 15: /* 110.011. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[8],  0x01, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_5(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_R(in[8],  0x1e, 1);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[5],  0x0f, 3) | MASK_R(in[8],  0xe0, 5); SIGN_EXTEND_7(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_R(in[5],  0xf0, 4);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_R(in[4],  0x1f, 0);                           SIGN_EXTEND_5(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[1],  0x01, 3) | MASK_R(in[4],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[0],  0x1f, 7) | MASK_R(in[1],  0xfe, 1); SIGN_EXTEND_12(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[10], 0x01, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_5(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_R(in[10], 0x1e, 1);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[7],  0x0f, 3) | MASK_R(in[10], 0xe0, 5); SIGN_EXTEND_7(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_R(in[7],  0xf0, 4);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_R(in[6],  0x1f, 0);                           SIGN_EXTEND_5(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[3],  0x01, 3) | MASK_R(in[6],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[2],  0x1f, 7) | MASK_R(in[3],  0xfe, 1); SIGN_EXTEND_12(*p); SHIFT_ROUND_2(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 16: /* 110.100. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[8],  0x01, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_5(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_R(in[8],  0x1e, 1);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[5],  0x0f, 3) | MASK_R(in[8],  0xe0, 5); SIGN_EXTEND_7(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_R(in[5],  0xf0, 4);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_R(in[4],  0x1f, 0);                           SIGN_EXTEND_5(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[1],  0x01, 3) | MASK_R(in[4],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[0],  0x1f, 7) | MASK_R(in[1],  0xfe, 1); SIGN_EXTEND_12(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[10], 0x01, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_5(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_R(in[10], 0x1e, 1);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[7],  0x0f, 3) | MASK_R(in[10], 0xe0, 5); SIGN_EXTEND_7(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_R(in[7],  0xf0, 4);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_R(in[6],  0x1f, 0);                           SIGN_EXTEND_5(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[3],  0x01, 3) | MASK_R(in[6],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[2],  0x1f, 7) | MASK_R(in[3],  0xfe, 1); SIGN_EXTEND_12(*p); SHIFT_ROUND_3(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 17: /* 110.101. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[8],  0x01, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_5(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[8],  0x1e, 1);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[5],  0x0f, 3) | MASK_R(in[8],  0xe0, 5); SIGN_EXTEND_7(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[5],  0xf0, 4);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[4],  0x1f, 0);                           SIGN_EXTEND_5(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[1],  0x01, 3) | MASK_R(in[4],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[0],  0x1f, 7) | MASK_R(in[1],  0xfe, 1); SIGN_EXTEND_12(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[10], 0x01, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_5(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[10], 0x1e, 1);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[7],  0x0f, 3) | MASK_R(in[10], 0xe0, 5); SIGN_EXTEND_7(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[7],  0xf0, 4);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[6],  0x1f, 0);                           SIGN_EXTEND_5(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[3],  0x01, 3) | MASK_R(in[6],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[2],  0x1f, 7) | MASK_R(in[3],  0xfe, 1); SIGN_EXTEND_12(*p); SHIFT_ROUND_4(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        /*=====================================================================
+            PATTERN_G
+            ppp88888 88888777 pppggggg gggggfff
+            76666665 55544444 feeeeeed dddccccc
+            44333322 22221111 ccbbbbaa aaaa9999
+            */
+
+        case 18: /* 110.110. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[8],  0x03, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_6(*p);  SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[8],  0x3c, 2);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[5],  0x1f, 2) | MASK_R(in[8],  0xc0, 6); SIGN_EXTEND_7(*p);  SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[4],  0x01, 3) | MASK_R(in[5],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[4],  0x7e, 1);                           SIGN_EXTEND_6(*p);  SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[1],  0x07, 1) | MASK_R(in[4],  0x80, 7); SIGN_EXTEND_4(*p);  SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[0],  0x1f, 5) | MASK_R(in[1],  0xf8, 3); SIGN_EXTEND_10(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[10], 0x03, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_6(*p);  SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[10], 0x3c, 2);                           SIGN_EXTEND_4(*p);  SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[7],  0x1f, 2) | MASK_R(in[10], 0xc0, 6); SIGN_EXTEND_7(*p);  SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[6],  0x01, 3) | MASK_R(in[7],  0xe0, 5); SIGN_EXTEND_4(*p);  SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[6],  0x7e, 1);                           SIGN_EXTEND_6(*p);  SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[3],  0x07, 1) | MASK_R(in[6],  0x80, 7); SIGN_EXTEND_4(*p);  SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[2],  0x1f, 5) | MASK_R(in[3],  0xf8, 3); SIGN_EXTEND_10(*p); SHIFT_ROUND_6(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        /*=====================================================================
+            PATTERN_E
+            ppp88888 88887777 pppggggg ggggffff
+            66666655 55444444 eeeeeedd ddcccccc
+            44333322 22221111 ccbbbbaa aaaa9999
+        */
+        case 19: /* 110.111. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[8],  0x03, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_R(in[8],  0x3c, 2);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[5],  0x3f, 2) | MASK_R(in[8],  0xc0, 6); SIGN_EXTEND_8(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[4],  0x03, 2) | MASK_R(in[5],  0xc0, 6); SIGN_EXTEND_4(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_R(in[4],  0xfc, 2);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[1],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[0],  0x1f, 4) | MASK_R(in[1],  0xf0, 4); SIGN_EXTEND_9(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[10], 0x03, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_R(in[10], 0x3c, 2);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[7],  0x3f, 2) | MASK_R(in[10], 0xc0, 6); SIGN_EXTEND_8(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[6],  0x03, 2) | MASK_R(in[7],  0xc0, 6); SIGN_EXTEND_4(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_R(in[6],  0xfc, 2);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[3],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_2(*p);
+            *(++p) = MASK_L(in[2],  0x1f, 4) | MASK_R(in[3],  0xf0, 4); SIGN_EXTEND_9(*p); SHIFT_ROUND_2(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 20: /* 111.000. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[8],  0x03, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_R(in[8],  0x3c, 2);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[5],  0x3f, 2) | MASK_R(in[8],  0xc0, 6); SIGN_EXTEND_8(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[4],  0x03, 2) | MASK_R(in[5],  0xc0, 6); SIGN_EXTEND_4(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_R(in[4],  0xfc, 2);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[1],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[0],  0x1f, 4) | MASK_R(in[1],  0xf0, 4); SIGN_EXTEND_9(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[10], 0x03, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_R(in[10], 0x3c, 2);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[7],  0x3f, 2) | MASK_R(in[10], 0xc0, 6); SIGN_EXTEND_8(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[6],  0x03, 2) | MASK_R(in[7],  0xc0, 6); SIGN_EXTEND_4(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_R(in[6],  0xfc, 2);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[3],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_3(*p);
+            *(++p) = MASK_L(in[2],  0x1f, 4) | MASK_R(in[3],  0xf0, 4); SIGN_EXTEND_9(*p); SHIFT_ROUND_3(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 21: /* 111.001. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[8],  0x03, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[8],  0x3c, 2);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[5],  0x3f, 2) | MASK_R(in[8],  0xc0, 6); SIGN_EXTEND_8(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[4],  0x03, 2) | MASK_R(in[5],  0xc0, 6); SIGN_EXTEND_4(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[4],  0xfc, 2);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[1],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[0],  0x1f, 4) | MASK_R(in[1],  0xf0, 4); SIGN_EXTEND_9(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[10], 0x03, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[10], 0x3c, 2);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[7],  0x3f, 2) | MASK_R(in[10], 0xc0, 6); SIGN_EXTEND_8(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[6],  0x03, 2) | MASK_R(in[7],  0xc0, 6); SIGN_EXTEND_4(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_R(in[6],  0xfc, 2);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[3],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_4(*p);
+            *(++p) = MASK_L(in[2],  0x1f, 4) | MASK_R(in[3],  0xf0, 4); SIGN_EXTEND_9(*p); SHIFT_ROUND_4(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 22: /* 111.010. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[8],  0x03, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_R(in[8],  0x3c, 2);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[5],  0x3f, 2) | MASK_R(in[8],  0xc0, 6); SIGN_EXTEND_8(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[4],  0x03, 2) | MASK_R(in[5],  0xc0, 6); SIGN_EXTEND_4(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_R(in[4],  0xfc, 2);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[1],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[0],  0x1f, 4) | MASK_R(in[1],  0xf0, 4); SIGN_EXTEND_9(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[10], 0x03, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_R(in[10], 0x3c, 2);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[7],  0x3f, 2) | MASK_R(in[10], 0xc0, 6); SIGN_EXTEND_8(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[6],  0x03, 2) | MASK_R(in[7],  0xc0, 6); SIGN_EXTEND_4(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_R(in[6],  0xfc, 2);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[3],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_5(*p);
+            *(++p) = MASK_L(in[2],  0x1f, 4) | MASK_R(in[3],  0xf0, 4); SIGN_EXTEND_9(*p); SHIFT_ROUND_5(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 23: /* 111.011. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[8],  0x03, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[8],  0x3c, 2);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[5],  0x3f, 2) | MASK_R(in[8],  0xc0, 6); SIGN_EXTEND_8(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[4],  0x03, 2) | MASK_R(in[5],  0xc0, 6); SIGN_EXTEND_4(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[4],  0xfc, 2);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[1],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[0],  0x1f, 4) | MASK_R(in[1],  0xf0, 4); SIGN_EXTEND_9(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[10], 0x03, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[10], 0x3c, 2);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[7],  0x3f, 2) | MASK_R(in[10], 0xc0, 6); SIGN_EXTEND_8(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[6],  0x03, 2) | MASK_R(in[7],  0xc0, 6); SIGN_EXTEND_4(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[6],  0xfc, 2);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[3],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[2],  0x1f, 4) | MASK_R(in[3],  0xf0, 4); SIGN_EXTEND_9(*p); SHIFT_ROUND_6(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 24: /* 111.100. */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[8],  0x03, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[8],  0x3c, 2);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[5],  0x3f, 2) | MASK_R(in[8],  0xc0, 6); SIGN_EXTEND_8(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[4],  0x03, 2) | MASK_R(in[5],  0xc0, 6); SIGN_EXTEND_4(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[4],  0xfc, 2);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[1],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[0],  0x1f, 4) | MASK_R(in[1],  0xf0, 4); SIGN_EXTEND_9(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[10], 0x03, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[10], 0x3c, 2);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[7],  0x3f, 2) | MASK_R(in[10], 0xc0, 6); SIGN_EXTEND_8(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[6],  0x03, 2) | MASK_R(in[7],  0xc0, 6); SIGN_EXTEND_4(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[6],  0xfc, 2);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[3],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[2],  0x1f, 4) | MASK_R(in[3],  0xf0, 4); SIGN_EXTEND_9(*p); SHIFT_ROUND_7(*p);
+
+            // 2 linears
+
+            INTERPOLATE_2(d0, out);
+
+            PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        /*=====================================================================
+            PATTERN_C
+            pppp8888 88777776 ppppgggg ggfffffe
+            66666555 55444444 eeeeeddd ddcccccc
+            33333222 22211111 bbbbbaaa aaa99999
+        */
+
+        case 25: /* 11101010 */
+
+            *p     = MASK_L(in[9],  0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[8],  0x07, 3) | MASK_R(in[9],  0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[8],  0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[5],  0x3f, 0);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[4],  0x07, 2) | MASK_R(in[5],  0xc0, 6); SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[1],  0x01, 5) | MASK_R(in[4],  0xf8, 3); SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[1],  0x3e, 1);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[0],  0x0f, 2) | MASK_R(in[1],  0xc0, 6); SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[11], 0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[10], 0x07, 3) | MASK_R(in[11], 0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[10], 0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[7],  0x3f, 0);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[6],  0x07, 2) | MASK_R(in[7],  0xc0, 6); SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[3],  0x01, 5) | MASK_R(in[6],  0xf8, 3); SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_R(in[3],  0x3e, 1);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_6(*p);
+            *(++p) = MASK_L(in[2],  0x0f, 2) | MASK_R(in[3],  0xc0, 6); SIGN_EXTEND_6(*p); SHIFT_ROUND_6(*p);
+
+            // 8 linears
+
+            INTERPOLATE_8(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 26: /* 11101011 */
+
+            *p     = MASK_L(in[9],  0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[8],  0x07, 3) | MASK_R(in[9],  0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[8],  0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[5],  0x3f, 0);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[4],  0x07, 2) | MASK_R(in[5],  0xc0, 6); SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[1],  0x01, 5) | MASK_R(in[4],  0xf8, 3); SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[1],  0x3e, 1);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[0],  0x0f, 2) | MASK_R(in[1],  0xc0, 6); SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[11], 0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[10], 0x07, 3) | MASK_R(in[11], 0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[10], 0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[7],  0x3f, 0);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[6],  0x07, 2) | MASK_R(in[7],  0xc0, 6); SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[3],  0x01, 5) | MASK_R(in[6],  0xf8, 3); SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_R(in[3],  0x3e, 1);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_7(*p);
+            *(++p) = MASK_L(in[2],  0x0f, 2) | MASK_R(in[3],  0xc0, 6); SIGN_EXTEND_6(*p); SHIFT_ROUND_7(*p);
+
+            // 8 linears
+
+            INTERPOLATE_8(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 27: /* 11101100 */
+
+            *p     = MASK_L(in[9],  0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[8],  0x07, 3) | MASK_R(in[9],  0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[8],  0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[5],  0x3f, 0);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[4],  0x07, 2) | MASK_R(in[5],  0xc0, 6); SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[1],  0x01, 5) | MASK_R(in[4],  0xf8, 3); SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[1],  0x3e, 1);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[0],  0x0f, 2) | MASK_R(in[1],  0xc0, 6); SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[11], 0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[10], 0x07, 3) | MASK_R(in[11], 0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[10], 0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[7],  0x3f, 0);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[6],  0x07, 2) | MASK_R(in[7],  0xc0, 6); SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[3],  0x01, 5) | MASK_R(in[6],  0xf8, 3); SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[3],  0x3e, 1);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[2],  0x0f, 2) | MASK_R(in[3],  0xc0, 6); SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+
+            // 8 linears
+
+            INTERPOLATE_8(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 28: /* 11101101 */
+
+            *p     = MASK_L(in[9],  0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[8],  0x07, 3) | MASK_R(in[9],  0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_R(in[8],  0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_R(in[5],  0x3f, 0);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[4],  0x07, 2) | MASK_R(in[5],  0xc0, 6); SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[1],  0x01, 5) | MASK_R(in[4],  0xf8, 3); SIGN_EXTEND_6(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_R(in[1],  0x3e, 1);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[0],  0x0f, 2) | MASK_R(in[1],  0xc0, 6); SIGN_EXTEND_6(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[11], 0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[10], 0x07, 3) | MASK_R(in[11], 0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_R(in[10], 0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_R(in[7],  0x3f, 0);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[6],  0x07, 2) | MASK_R(in[7],  0xc0, 6); SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[3],  0x01, 5) | MASK_R(in[6],  0xf8, 3); SIGN_EXTEND_6(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_R(in[3],  0x3e, 1);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_9(*p);
+            *(++p) = MASK_L(in[2],  0x0f, 2) | MASK_R(in[3],  0xc0, 6); SIGN_EXTEND_6(*p); SHIFT_ROUND_9(*p);
+
+            // 8 linears
+
+            INTERPOLATE_8(d0, out);
+
+            //PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 29: /* 11101110 */
+
+            *p     = MASK_L(in[9],  0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[8],  0x07, 3) | MASK_R(in[9],  0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[8],  0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[5],  0x3f, 0);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[4],  0x07, 2) | MASK_R(in[5],  0xc0, 6); SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[1],  0x01, 5) | MASK_R(in[4],  0xf8, 3); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[1],  0x3e, 1);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[0],  0x0f, 2) | MASK_R(in[1],  0xc0, 6); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[11], 0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[10], 0x07, 3) | MASK_R(in[11], 0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[10], 0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[7],  0x3f, 0);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[6],  0x07, 2) | MASK_R(in[7],  0xc0, 6); SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[3],  0x01, 5) | MASK_R(in[6],  0xf8, 3); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[3],  0x3e, 1);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[2],  0x0f, 2) | MASK_R(in[3],  0xc0, 6); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+
+            // 8 linears
+
+            INTERPOLATE_8(d0, out);
+
+            PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        case 30: /* 11101111 */
+
+#ifdef DANIELO_DOUBLE
+            *p     = MASK_L(in[9],  0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_11(*p);
+            *(++p) = MASK_L(in[8],  0x07, 3) | MASK_R(in[9],  0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[8],  0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_11(*p);
+            *(++p) = MASK_R(in[5],  0x3f, 0);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[4],  0x07, 2) | MASK_R(in[5],  0xc0, 6); SIGN_EXTEND_5(*p); SHIFT_ROUND_11(*p);
+            *(++p) = MASK_L(in[1],  0x01, 5) | MASK_R(in[4],  0xf8, 3); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[1],  0x3e, 1);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_11(*p);
+            *(++p) = MASK_L(in[0],  0x0f, 2) | MASK_R(in[1],  0xc0, 6); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[11], 0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_11(*p);
+            *(++p) = MASK_L(in[10], 0x07, 3) | MASK_R(in[11], 0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[10], 0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_11(*p);
+            *(++p) = MASK_R(in[7],  0x3f, 0);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[6],  0x07, 2) | MASK_R(in[7],  0xc0, 6); SIGN_EXTEND_5(*p); SHIFT_ROUND_11(*p);
+            *(++p) = MASK_L(in[3],  0x01, 5) | MASK_R(in[6],  0xf8, 3); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[3],  0x3e, 1);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_11(*p);
+            *(++p) = MASK_L(in[2],  0x0f, 2) | MASK_R(in[3],  0xc0, 6); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+
+            // 16 linears - but odd samples are doubled
+#else
+            *p     = MASK_L(in[9],  0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[8],  0x07, 3) | MASK_R(in[9],  0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[8],  0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[5],  0x3f, 0);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[4],  0x07, 2) | MASK_R(in[5],  0xc0, 6); SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[1],  0x01, 5) | MASK_R(in[4],  0xf8, 3); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[1],  0x3e, 1);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[0],  0x0f, 2) | MASK_R(in[1],  0xc0, 6); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[11], 0x1f, 0);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[10], 0x07, 3) | MASK_R(in[11], 0xe0, 5); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[10], 0xf8, 3);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[7],  0x3f, 0);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[6],  0x07, 2) | MASK_R(in[7],  0xc0, 6); SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[3],  0x01, 5) | MASK_R(in[6],  0xf8, 3); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_R(in[3],  0x3e, 1);                           SIGN_EXTEND_5(*p); SHIFT_ROUND_10(*p);
+            *(++p) = MASK_L(in[2],  0x0f, 2) | MASK_R(in[3],  0xc0, 6); SIGN_EXTEND_6(*p); SHIFT_ROUND_10(*p);
+
+            // 16 linears - but odd samples are doubled
+
+            DOUBLE_ODDS(out);
+#endif
+
+            PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        /*=====================================================================
+            PATTERN_D
+            pppp8888 88887777 ppppggggggggffff
+            66666655 55444444 eeeeeeddddcccccc
+            44333322 22221111 ccbbbbaaaaaa9999
+        */
+
+        case 31: /* 11111010 */
+
+            *p     = MASK_L(in[9],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[8],  0x03, 4) | MASK_R(in[9],  0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[8],  0x3c, 2);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[5],  0x3f, 2) | MASK_R(in[8],  0xc0, 6); SIGN_EXTEND_8(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[4],  0x03, 2) | MASK_R(in[5],  0xc0, 6); SIGN_EXTEND_4(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[4],  0xfc, 2);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[1],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[0],  0x0f, 4) | MASK_R(in[1],  0xf0, 4); SIGN_EXTEND_8(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[11], 0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[10], 0x03, 4) | MASK_R(in[11], 0xf0, 4); SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[10], 0x3c, 2);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[7],  0x3f, 2) | MASK_R(in[10], 0xc0, 6); SIGN_EXTEND_8(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[6],  0x03, 2) | MASK_R(in[7],  0xc0, 6); SIGN_EXTEND_4(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[6],  0xfc, 2);                           SIGN_EXTEND_6(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_R(in[3],  0x0f, 0);                           SIGN_EXTEND_4(*p); SHIFT_ROUND_8(*p);
+            *(++p) = MASK_L(in[2],  0x0f, 4) | MASK_R(in[3],  0xf0, 4); SIGN_EXTEND_8(*p); SHIFT_ROUND_8(*p);
+
+            // 4 Linears
+
+            INTERPOLATE_4(d0, out);
+
+            PREVENT_OVERFLOW_16(out);
+
+            return;
+
+        /*=====================================================================
+            PATTERN ?
+        */
+
+        case 32: /* 11111011 */
+
+            /* Unknown - never occurs? */
+            ZERO(out);
+
+            return;
+
+        case 33: /* 11111100 */
+
+            /* Unknown - never occurs? */
+            ZERO(out);
+
+            return;
+            
+
+        case 34: /* 11111101 */
+
+            /* Unknown - never occurs? */
+            ZERO(out);
+
+            return;
+
+        case 35: /* 11111110 */
+
+            /* Unknown - never occurs? */
+            ZERO(out);
+
+            return;
+
+        case 36: /* 11111111 */
+
+            /* Unknown - never occurs? */
+            ZERO(out);
+
+            return;
+
+        default: break;
+    }
+}
+
+
+
+/// for debug logging
+int usedpatterns[] = {
+    0, /* 00..00.. */
+    0, /* 00..00.. */
+    0, /* 00..00.. */
+    0, /* 00..00.. */
+    1, /* 00..01.. */
+    1, /* 00..01.. */
+    1, /* 00..01.. */
+    1, /* 00..01.. */
+    2, /* 00..10.. */
+    2, /* 00..10.. */
+    2, /* 00..10.. */
+    2, /* 00..10.. */
+    3, /* 00..11.. */
+    3, /* 00..11.. */
+    3, /* 00..11.. */
+    3, /* 00..11.. */
+    0, /* 00..00.. */
+    0, /* 00..00.. */
+    0, /* 00..00.. */
+    0, /* 00..00.. */
+    1, /* 00..01.. */
+    1, /* 00..01.. */
+    1, /* 00..01.. */
+    1, /* 00..01.. */
+    2, /* 00..10.. */
+    2, /* 00..10.. */
+    2, /* 00..10.. */
+    2, /* 00..10.. */
+    3, /* 00..11.. */
+    3, /* 00..11.. */
+    3, /* 00..11.. */
+    3, /* 00..11.. */
+    0, /* 00..00.. */
+    0, /* 00..00.. */
+    0, /* 00..00.. */
+    0, /* 00..00.. */
+    1, /* 00..01.. */
+    1, /* 00..01.. */
+    1, /* 00..01.. */
+    1, /* 00..01.. */
+    2, /* 00..10.. */
+    2, /* 00..10.. */
+    2, /* 00..10.. */
+    2, /* 00..10.. */
+    3, /* 00..11.. */
+    3, /* 00..11.. */
+    3, /* 00..11.. */
+    3, /* 00..11.. */
+    0, /* 00..00.. */
+    0, /* 00..00.. */
+    0, /* 00..00.. */
+    0, /* 00..00.. */
+    1, /* 00..01.. */
+    1, /* 00..01.. */
+    1, /* 00..01.. */
+    1, /* 00..01.. */
+    2, /* 00..10.. */
+    2, /* 00..10.. */
+    2, /* 00..10.. */
+    2, /* 00..10.. */
+    3, /* 00..11.. */
+    3, /* 00..11.. */
+    3, /* 00..11.. */
+    3, /* 00..11.. */
+    4, /* 01..00.. */
+    4, /* 01..00.. */
+    4, /* 01..00.. */
+    4, /* 01..00.. */
+    5, /* 01..01.. */
+    5, /* 01..01.. */
+    5, /* 01..01.. */
+    5, /* 01..01.. */
+    6, /* 01..10.. */
+    6, /* 01..10.. */
+    6, /* 01..10.. */
+    6, /* 01..10.. */
+    7, /* 01..11.. */
+    7, /* 01..11.. */
+    7, /* 01..11.. */
+    7, /* 01..11.. */
+    4, /* 01..00.. */
+    4, /* 01..00.. */
+    4, /* 01..00.. */
+    4, /* 01..00.. */
+    5, /* 01..01.. */
+    5, /* 01..01.. */
+    5, /* 01..01.. */
+    5, /* 01..01.. */
+    6, /* 01..10.. */
+    6, /* 01..10.. */
+    6, /* 01..10.. */
+    6, /* 01..10.. */
+    7, /* 01..11.. */
+    7, /* 01..11.. */
+    7, /* 01..11.. */
+    7, /* 01..11.. */
+    4, /* 01..00.. */
+    4, /* 01..00.. */
+    4, /* 01..00.. */
+    4, /* 01..00.. */
+    5, /* 01..01.. */
+    5, /* 01..01.. */
+    5, /* 01..01.. */
+    5, /* 01..01.. */
+    6, /* 01..10.. */
+    6, /* 01..10.. */
+    6, /* 01..10.. */
+    6, /* 01..10.. */
+    7, /* 01..11.. */
+    7, /* 01..11.. */
+    7, /* 01..11.. */
+    7, /* 01..11.. */
+    4, /* 01..00.. */
+    4, /* 01..00.. */
+    4, /* 01..00.. */
+    4, /* 01..00.. */
+    5, /* 01..01.. */
+    5, /* 01..01.. */
+    5, /* 01..01.. */
+    5, /* 01..01.. */
+    6, /* 01..10.. */
+    6, /* 01..10.. */
+    6, /* 01..10.. */
+    6, /* 01..10.. */
+    7, /* 01..11.. */
+    7, /* 01..11.. */
+    7, /* 01..11.. */
+    7, /* 01..11.. */
+    8, /* 10..00.. */
+    8, /* 10..00.. */
+    8, /* 10..00.. */
+    8, /* 10..00.. */
+    9, /* 10..01.. */
+    9, /* 10..01.. */
+    9, /* 10..01.. */
+    9, /* 10..01.. */
+    10, /* 10..10.. */
+    10, /* 10..10.. */
+    10, /* 10..10.. */
+    10, /* 10..10.. */
+    11, /* 10..11.. */
+    11, /* 10..11.. */
+    11, /* 10..11.. */
+    11, /* 10..11.. */
+    8, /* 10..00.. */
+    8, /* 10..00.. */
+    8, /* 10..00.. */
+    8, /* 10..00.. */
+    9, /* 10..01.. */
+    9, /* 10..01.. */
+    9, /* 10..01.. */
+    9, /* 10..01.. */
+    10, /* 10..10.. */
+    10, /* 10..10.. */
+    10, /* 10..10.. */
+    10, /* 10..10.. */
+    11, /* 10..11.. */
+    11, /* 10..11.. */
+    11, /* 10..11.. */
+    11, /* 10..11.. */
+    8, /* 10..00.. */
+    8, /* 10..00.. */
+    8, /* 10..00.. */
+    8, /* 10..00.. */
+    9, /* 10..01.. */
+    9, /* 10..01.. */
+    9, /* 10..01.. */
+    9, /* 10..01.. */
+    10, /* 10..10.. */
+    10, /* 10..10.. */
+    10, /* 10..10.. */
+    10, /* 10..10.. */
+    11, /* 10..11.. */
+    11, /* 10..11.. */
+    11, /* 10..11.. */
+    11, /* 10..11.. */
+    8, /* 10..00.. */
+    8, /* 10..00.. */
+    8, /* 10..00.. */
+    8, /* 10..00.. */
+    9, /* 10..01.. */
+    9, /* 10..01.. */
+    9, /* 10..01.. */
+    9, /* 10..01.. */
+    10, /* 10..10.. */
+    10, /* 10..10.. */
+    10, /* 10..10.. */
+    10, /* 10..10.. */
+    11, /* 10..11.. */
+    11, /* 10..11.. */
+    11, /* 10..11.. */
+    11, /* 10..11.. */
+    12, /* 110.000. */
+    12, /* 110.000. */
+    13, /* 110.001. */
+    13, /* 110.001. */
+    14, /* 110.010. */
+    14, /* 110.010. */
+    15, /* 110.011. */
+    15, /* 110.011. */
+    16, /* 110.100. */
+    16, /* 110.100. */
+    17, /* 110.101. */
+    17, /* 110.101. */
+    18, /* 110.110. */
+    18, /* 110.110. */
+    19, /* 110.111. */
+    19, /* 110.111. */
+    12, /* 110.000. */
+    12, /* 110.000. */
+    13, /* 110.001. */
+    13, /* 110.001. */
+    14, /* 110.010. */
+    14, /* 110.010. */
+    15, /* 110.011. */
+    15, /* 110.011. */
+    16, /* 110.100. */
+    16, /* 110.100. */
+    17, /* 110.101. */
+    17, /* 110.101. */
+    18, /* 110.110. */
+    18, /* 110.110. */
+    19, /* 110.111. */
+    19, /* 110.111. */
+    20, /* 111.000. */
+    20, /* 111.000. */
+    21, /* 111.001. */
+    21, /* 111.001. */
+    22, /* 111.010. */
+    22, /* 111.010. */
+    23, /* 111.011. */
+    23, /* 111.011. */
+    24, /* 111.100. */
+    24, /* 111.100. */
+    25, /* 11101010 */
+    26, /* 11101011 */
+    27, /* 11101100 */
+    28, /* 11101101 */
+    29, /* 11101110 */
+    30, /* 11101111 */
+    20, /* 111.000. */
+    20, /* 111.000. */
+    21, /* 111.001. */
+    21, /* 111.001. */
+    22, /* 111.010. */
+    22, /* 111.010. */
+    23, /* 111.011. */
+    23, /* 111.011. */
+    24, /* 111.100. */
+    24, /* 111.100. */
+    31, /* 11111010 */
+    32, /* 11111011 */
+    33, /* 11111100 */
+    34, /* 11111101 */
+    35, /* 11111110 */
+    36, /* 11111111 */
+};
 //*****************************************************************************
 void decodeM16(unsigned char *in, int *out)
 {

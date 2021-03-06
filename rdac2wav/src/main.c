@@ -20,6 +20,7 @@ void convertMTP(char *inFileName, char *outFileName, int sampleRate, int bitDept
 void convertVSR(char *inFileName, char *outFileName, int sampleRate, int bitDepth);
 void convertMT1(char *inFileName, char *outFileName, int sampleRate, int bitDepth);
 void convertMT2(char *inFileName, char *outFileName, int sampleRate, int bitDepth, char *clusterSize);
+void convertLIV(char *inFileName, char *outFileName, int sampleRate, int bitDepth, char *clusterSize);
 void convertM16(char *inFileName, char *outFileName, int sampleRate, int bitDepth);
 void convertM24(char *inFileName, char *outFileName, int sampleRate, int bitDepth, char *clusterSize);
 void convertCDR(char *inFileName, char *outFileName, int sampleRate, int bitDepth);
@@ -29,7 +30,10 @@ int isSupportedClusterSize(char *size);
 int isSupportedBitDepth(int bitDepth);
 long fsize(const char *const name);
 
-
+#ifndef stricmp
+/// on macos stricmp is unknown
+    #define stricmp strcmp
+#endif
 //*****************************************************************************
 int main(int argc, char **argv)
 {
@@ -100,7 +104,7 @@ int main(int argc, char **argv)
         printf("where options include:\n");
         printf("\n");
         printf("    -m <rdac_mode>    : MTP,MT1,MT2,VSR,\n");
-        printf("                        M16,M24,CDR             (default: MTP)\n");
+        printf("                        M16,M24,CDR,LIV         (default: MTP)\n");
         printf("    -r <sample_rate>  : select the sample rate  (default: 44100)\n");
         printf("    -d <bit_depth>    : select 24 or 16-bit WAV (default: mode dependent)\n");
         printf("    -c <cluster_size> : select 32K or 64K       (default: 32K)\n");
@@ -114,6 +118,7 @@ int main(int argc, char **argv)
     else if (stricmp(rdacMode, "vsr") == 0) convertVSR(inFileName, outFileName, sampleRate, bitDepth);
     else if (stricmp(rdacMode, "mt1") == 0) convertMT1(inFileName, outFileName, sampleRate, bitDepth);
     else if (stricmp(rdacMode, "mt2") == 0) convertMT2(inFileName, outFileName, sampleRate, bitDepth, clusterSize);
+    else if (stricmp(rdacMode, "liv") == 0) convertLIV(inFileName, outFileName, sampleRate, bitDepth, clusterSize);
     else if (stricmp(rdacMode, "m16") == 0) convertM16(inFileName, outFileName, sampleRate, bitDepth);
     else if (stricmp(rdacMode, "m24") == 0) convertM24(inFileName, outFileName, sampleRate, bitDepth, clusterSize);
     else if (stricmp(rdacMode, "cdr") == 0) convertCDR(inFileName, outFileName, sampleRate, bitDepth);
@@ -166,6 +171,7 @@ void convertMTP(char *inFileName, char *outFileName, int sampleRate, int bitDept
     fclose(fin);
     fclose(fout);
 }
+
 //*****************************************************************************
 void convertVSR(char *inFileName, char *outFileName, int sampleRate, int bitDepth)
 {
@@ -347,6 +353,79 @@ void convertMT2(char *inFileName, char *outFileName, int sampleRate, int bitDept
     fclose(fin);
     fclose(fout);
 }
+
+void convertLIV(char *inFileName, char *outFileName, int sampleRate, int bitDepth, char *clusterSize)
+{
+    int i;
+
+    FILE *fin  = fopen(inFileName,  "rb");
+    FILE *fout = fopen(outFileName, "wb");
+
+    if (fin == NULL) {
+        printf("Unable to open input file: %s.\n", inFileName);
+        exit(1);
+    }
+    if (fout == NULL) {
+        printf("Unable to open output file: %s.\n", outFileName);
+        exit(1);
+    }
+
+    int fileSize  = fsize(inFileName);
+
+    // Determine number of blocks based on page size (for alignment)
+    int pageSize      = 32768;
+    int blocksPerPage = 3276;
+
+    if (stricmp(clusterSize,"32k") == 0) {
+        pageSize      = 32768;
+        blocksPerPage = 3276;
+    }
+    else if (stricmp(clusterSize,"64k") == 0) {
+        pageSize      = 65536;
+        blocksPerPage = 5460;
+    }
+    int bytesPerBlock = 10;
+
+    int pagePadBytes  = pageSize - blocksPerPage*bytesPerBlock;
+    int numPages      = ((int)fileSize)/pageSize;
+    int leftOverBytes = ((int)fileSize)%pageSize;
+    int numBlocks     = numPages*blocksPerPage + leftOverBytes/bytesPerBlock;
+
+    // Write the WAV header
+    int  numSamples = numBlocks*16;
+    writeWavHeader(fout, numSamples, sampleRate, bitDepth, 1);
+
+
+    unsigned char in[bytesPerBlock];  // Input LIV RDAC block
+    int           out[16]; // Output 16-bit samples
+    unsigned char dummy[200];
+
+    int d0 = 0;
+
+    if (bitDepth == 24) {
+        for (i=0; i<numBlocks; i++) {
+            fread(in, 1, bytesPerBlock, fin);
+            decodeLIV(d0, in, out);
+            writeWavSamples16as24(fout, out);
+            d0 = out[15];
+            // Check if at end of page boundary - if so, eat pad bytes.
+            if ((i+1)%blocksPerPage == 0) fread(dummy, 1, pagePadBytes, fin);
+        }
+    }
+    else if (bitDepth == 16) {
+        for (i=0; i<numBlocks; i++) {
+            fread(in, 1, bytesPerBlock, fin);
+            decodeLIV(d0, in, out);
+            writeWavSamples16(fout, out);
+            d0 = out[15];
+            // Check if at end of page boundary - if so, eat pad bytes.
+            if ((i+1)%blocksPerPage == 0) fread(dummy, 1, pagePadBytes, fin);
+        }
+    }
+    debugPatterns();
+    fclose(fin);
+    fclose(fout);
+}
 //*****************************************************************************
 void convertM16(char *inFileName, char *outFileName, int sampleRate, int bitDepth)
 {
@@ -511,6 +590,7 @@ int isSupportedMode(char *mode)
     if (stricmp(mode, "vsr") == 0) return 1;
     if (stricmp(mode, "mt1") == 0) return 1;
     if (stricmp(mode, "mt2") == 0) return 1;
+    if (stricmp(mode, "liv") == 0) return 1;
     if (stricmp(mode, "m16") == 0) return 1;
     if (stricmp(mode, "m24") == 0) return 1;
     if (stricmp(mode, "cdr") == 0) return 1;

@@ -19,6 +19,10 @@ void decodeMT1(int d0, unsigned char *in, int *out);
 
 void decodeMT2(int d0, unsigned char *in, int *out);
 
+void decodeLIV(int d0, unsigned char *in, int *out);
+
+void debugPatterns(void);
+
 void decodeM16(unsigned char *in, int *out);
 
 void decodeM24(unsigned char *in, int *out);
