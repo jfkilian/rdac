@@ -9,3 +9,11 @@ All the important bits for decoding RDAC and unscrambling the custom FAT file fo
 Enjoy!
 
 Randy
+
+In the LIV_mode branch this fork contains a prototype for decoding also file recorded with Roland's LIV mode settings. It basically works, but the decoding patterns need to be reverse engineered.
+I stopped further research since there is an official tool available: 
+https://rolandus.zendesk.com/hc/en-us/articles/201969009-BR-900-BR-900CD-How-to-use-the-BR-Wav-Converter-Software
+This software can also devoce VS-880 LIV / Live mode encoded files.
+
+Jürgen
+
